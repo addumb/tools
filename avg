@@ -1,0 +1,12 @@
+#!/bin/sh
+#Average a column of a file with awk.
+
+col=1
+until [[ $# -eq 0 || -e $1 ]]; do
+	if [ $1 == "-c" ]; then
+		shift
+		col=$1
+		shift
+	fi
+done
+env awk -vcol=$col $AWK_ARGS '{sum+=$col;count++} END {if (count>0) { print sum/count } else {print "Nan"}}' $@
