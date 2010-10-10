@@ -1,0 +1,5 @@
+A collection of tools that I think should be in every SysAdmin's ~/bin.
+
+avg: Spit out the average of a column in a text file
+stddev: Spit out the standard deviation of a column in a text file
+column-bins: bin the columns of a text file (VERY useful for quick summaries of apache HTTP status codes and the like)
