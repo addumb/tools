@@ -16,6 +16,7 @@ while getopts "c:F:" flag; do
 	case $flag in
 		"c") COL=$OPTARG;;
 		"F") DELIM=$OPTARG;;
+		*) usage; exit;;
 	esac
 done 
 
