@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/bin/sh
 #Average a column of a file with awk.
 
 col=1
-until [[ $# -eq 0 || -e $1 ]]; do
+until [ $# -eq 0 ]  || [ -e $1 ]; do
 	if [ $1 == "-c" ]; then
 		shift
 		col=$1
