@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #Average a column of a file with awk.
 
 col=1
