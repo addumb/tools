@@ -1,0 +1,48 @@
+#!/bin/sh
+# Read a file in on stdin, use awk to bin column -c into bins of size -b. Optionally use log-size bins with base -L (mutually exclusive with -b)
+# E.g. echo -e "log file HTTP status: 200 body_size: 1024\nlog file HTTP status: 200 body_size: 3405" \
+# | ./$0 -c 7 -b 1000
+#  > 1000: 1
+#  > 3000: 1
+
+usage () {
+  cat << EOF
+Usage: $0 [-c COLUMN] [-F DELIM] <-b BIN|-L LOGBASE>
+Reads from stdin and bins column COLUMN (default: 1st column) from a
+DELIM-delimited file (e.g. apache log file) into bins of size BIN or
+into semi-log bins of size LOGBASE
+EOF
+}
+COL=1
+DELIM=" "
+while getopts "c:F:b:L:" flag; do
+	case $flag in
+		"c") COL=$OPTARG;;
+		"F") DELIM=$OPTARG;;
+		"b") BIN=$OPTARG;;
+		"L") LOGBASE=$OPTARG;;
+		*) usage; exit;;
+	esac
+done 
+
+#If both LOGBASE and BIN are set, bail
+if [ "x$LOGBASE" != "x" ] && [ "x$BIN" != "x" ]; then
+	usage
+	exit
+fi
+#Can't divide by log(1) 
+if [ "x$LOGBASE" != "x" ] && [ $LOGBASE -eq 1 ]; then
+	echo "LOGBASE cannot be 1, that's division by zero, Homes."
+	echo " (log(x) = integral from 1 to x of 1/y dy :. log(1)=0)"
+	usage
+	exit
+fi
+
+if [ "x$BIN" != "x" ]; then
+	awk -F"$DELIM" -vCOL=$COL -vBIN=$BIN '{bins[int($COL/BIN)]++} END { for (c in bins) { printf("%s\t%s\n", c*BIN, bins[c]);}}'
+elif [ "x$LOGBASE" != "x" ]; then
+	awk -F"$DELIM" -vCOL=$COL -vLOGBASE=$LOGBASE '{bins[int(log($COL)/log(LOGBASE))]++} END { for (c in bins) { printf("%s\t%s\n", LOGBASE**c, bins[c]);}}'
+else
+	usage
+	exit
+fi
