@@ -1,0 +1,22 @@
+#!/bin/sh
+# Read a file in on stdin, use awk to bin-ify the column number -c
+# E.g. echo -e "log file HTTP status: 200 body_size: 1024\nlog file HTTP status: 200 body_size: 3405" \
+# | ./$0 --column 5
+#  > 200: 2
+
+usage () {
+  cat << EOF
+Usage: $0 [-c COLUMN] [-F DELIM]
+Reads from stdin and bins column COLUMN (default: 1st column) from a DELIM-delimited file (e.g. apache log file)
+EOF
+}
+COL=1
+DELIM=" "
+while getopts "c:F:" flag; do
+	case $flag in
+		"c") COL=$OPTARG;;
+		"F") DELIM=$OPTARG;;
+	esac
+done 
+
+awk -F"$DELIM" -vCOL=$COL '{bins[$COL]++} END { for (c in bins) { printf("%s\t%s\n", c, bins[c]);}}'
