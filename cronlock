@@ -1,0 +1,34 @@
+#!/bin/sh
+# cronlock ensures there is only one copy of a cron running, preventing pile-ups
+# prefix a crontab line with "cronlock " before the command and we'll do our best
+# to bail if we're already in the processlist, but proceed as if we aren't there
+# otherwise
+
+cmdline=`ps -ocmd= -p $$`
+parent=`ps -ocmd= -p \`ps -o ppid= -p $$\``
+
+if [ $UID -eq 0 ]; then
+	#root gets the nice directory
+	lockdir="/var/lock/cronlock"
+else
+	#users each have their own so they can't lock out other users' crons
+	lockdir="~/.cronlock/"
+fi
+
+#make the directory if it doesn't exist
+if [ ! -d $lockdir ]; then
+	mkdir $lockdir
+fi
+
+#when run from cron, our parent's commandline will always be the same
+hash=`echo $parent $cmdline | md5sum | cut -d\  -f 1`
+lockfile="$lockdir/cronlock-$hash"
+if [ -f $lockfile ]; then
+	# if you're using cronlock, you probably don't care when it collides?
+	# so be quiet here and exit cleanly
+	exit 0
+else
+	# the file doesn't exist, so make it and run!
+	touch $lockfile || exit 1
+	$@
+fi
