@@ -44,3 +44,9 @@ Similar to column-bin, but for continuous variables. Bin the column into bins of
     	10	4
     	1000	2
 
+## cronlock
+Ensure that only one copy of a crontab job is running at a time. This uses a per-user lock directory and checks for presence of a file named after the hash of the parents cmdline plus the current cmdline. If the file exists, the cron job exits quietly and "cleanly" without running the actual job. If the file doesn't exist, it creates the file and executes the job.
+### Usage:
+    $ crontab -e
+      */10 * * * * cronlock /that/command which-must-only-be-running-once
+
