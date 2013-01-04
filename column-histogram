@@ -41,7 +41,7 @@ fi
 if [ "x$BIN" != "x" ]; then
 	awk -F"$DELIM" -vCOL=$COL -vBIN=$BIN '{bins[int($COL/BIN)]++} END { for (c in bins) { printf("%s\t%s\n", c*BIN, bins[c]);}}'
 elif [ "x$LOGBASE" != "x" ]; then
-	awk -F"$DELIM" -vCOL=$COL -vLOGBASE=$LOGBASE '{bins[int(log($COL)/log(LOGBASE))]++} END { for (c in bins) { printf("%s\t%s\n", LOGBASE**c, bins[c]);}}'
+	awk -F"$DELIM" -vCOL=$COL -vLOGBASE=$LOGBASE '{bins[int(log($COL)/log(LOGBASE))]++} END { for (c in bins) { printf("%s\t%s\n", LOGBASE^c, bins[c]);}}'
 else
 	usage
 	exit
