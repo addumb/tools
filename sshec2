@@ -1,0 +1,29 @@
+#!/usr/bin/env python
+
+import argparse
+import boto.ec2
+import boto.ec2.autoscale
+import logging
+import os
+
+def ip_from_id(instance_id, conn):
+    return conn.get_all_instances([instance_id])[0].instances[0].ip_address
+
+def main():
+    ap = argparse.ArgumentParser(description='Wrap SSH in some EC2 info.')
+    ap.add_argument('-i', '--instance-id', help='Instance ID to get to.')
+    ap.add_argument('-o', '--ssh-args', help='Arguments to pass to SSH.', default='')
+    ap.add_argument('-r', '--region', help='EC2 region.', default='us-west-1')
+    ap.add_argument('--log-level', help='Logging level.', default='warning')
+    
+    args = ap.parse_args()
+    logging.basicConfig(level=getattr(logging, args.log_level.upper()))
+
+    conn = boto.ec2.connect_to_region(args.region)
+    ip = ip_from_id(args.instance_id, conn)
+    logging.debug('Found IP' + ip)
+
+    os.system("ssh %s %s" % (args.ssh_args, ip))
+
+if __name__ == '__main__':
+    main()
