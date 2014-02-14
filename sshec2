@@ -5,9 +5,19 @@ import boto.ec2
 import boto.ec2.autoscale
 import logging
 import os
+import random
 
 def ip_from_id(instance_id, conn):
-    return conn.get_all_instances([instance_id])[0].instances[0].ip_address
+    ip = conn.get_all_instances([instance_id])[0].instances[0].ip_address
+    logging.info('Resolved Instance ID %s to %s' % (instance_id, ip))
+    return ip
+
+def instance_id_from_asgname(asgname, conn):
+    group = conn.get_all_groups([asgname], 1)[0]
+    healthy_instances = filter(lambda i: i.health_status == 'Healthy', group.instances)
+    random_instance = random.choice(healthy_instances)
+    logging.info('Picked random instance: ' + str(random_instance))
+    return random_instance.instance_id
 
 def main():
     ap = argparse.ArgumentParser(description='Wrap SSH in some EC2 info.')
@@ -15,12 +25,18 @@ def main():
     ap.add_argument('-o', '--ssh-args', help='Arguments to pass to SSH.', default='')
     ap.add_argument('-r', '--region', help='EC2 region.', default='us-west-1')
     ap.add_argument('--log-level', help='Logging level.', default='warning')
+    ap.add_argument('-a', '--asg', help='AutoScaling Group to pick an instnace out of.')
     
     args = ap.parse_args()
     logging.basicConfig(level=getattr(logging, args.log_level.upper()))
 
-    conn = boto.ec2.connect_to_region(args.region)
-    ip = ip_from_id(args.instance_id, conn)
+    ec2conn = boto.ec2.connect_to_region(args.region)
+
+    if args.asg != None:
+        asgconn = boto.ec2.autoscale.connect_to_region(args.region)
+        args.instance_id = instance_id_from_asgname(args.asg, asgconn)
+
+    ip = ip_from_id(args.instance_id, ec2conn)
     logging.debug('Found IP' + ip)
 
     os.system("ssh %s %s" % (args.ssh_args, ip))
