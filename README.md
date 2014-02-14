@@ -1,5 +1,25 @@
 A collection of tools that I think should be in every SysAdmin's ~/bin.
 
+## sshec2
+Look up some info from EC2 and then SSH to whatever made it into an IP address.
+### Usage:
+    usage: sshec2 [-h] [-i INSTANCE_ID] [-o SSH_ARGS] [-r REGION]
+                  [--log-level LOG_LEVEL] [-a ASG]
+    
+    Wrap SSH in some EC2 info.
+    
+    optional arguments:
+      -h, --help            show this help message and exit
+      -i INSTANCE_ID, --instance-id INSTANCE_ID
+                            Instance ID to get to.
+      -o SSH_ARGS, --ssh-args SSH_ARGS
+                            Arguments to pass to SSH.
+      -r REGION, --region REGION
+                            EC2 region.
+      --log-level LOG_LEVEL
+                            Logging level.
+      -a ASG, --asg ASG     AutoScaling Group to pick an instnace out of.
+
 ## avg
 Spit out the average of a column in a text file
 ## stddev
