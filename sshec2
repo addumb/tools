@@ -7,10 +7,10 @@ import logging
 import os
 import random
 
-def ip_from_id(instance_id, conn):
-    ip = conn.get_all_instances([instance_id])[0].instances[0].ip_address
-    logging.info('Resolved Instance ID %s to %s' % (instance_id, ip))
-    return ip
+def public_hostname_from_id(instance_id, conn):
+    hostname = conn.get_all_instances([instance_id])[0].instances[0].public_dns_name
+    logging.info('Resolved Instance ID %s to %s' % (instance_id, hostname))
+    return hostname
 
 def instance_id_from_asgname(asgname, conn):
     group = conn.get_all_groups([asgname], 1)[0]
@@ -36,10 +36,10 @@ def main():
         asgconn = boto.ec2.autoscale.connect_to_region(args.region)
         args.instance_id = instance_id_from_asgname(args.asg, asgconn)
 
-    ip = ip_from_id(args.instance_id, ec2conn)
-    logging.debug('Found IP' + ip)
+    hostname = public_hostname_from_id(args.instance_id, ec2conn)
+    logging.debug('Found hostname: ' + hostname)
 
-    os.system("ssh %s %s" % (args.ssh_args, ip))
+    os.system("ssh %s %s" % (args.ssh_args, hostname))
 
 if __name__ == '__main__':
     main()
