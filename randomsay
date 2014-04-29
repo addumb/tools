@@ -1,0 +1,10 @@
+#!/usr/bin/env python
+
+import os
+import random
+
+def randomsay(cow_dir='/usr/share/cowsay/cows'):
+  return random.Random().sample([cow.split('.')[0] for cow in os.listdir(cow_dir)], 1)[0]
+
+if __name__ == '__main__':
+  print randomsay()
