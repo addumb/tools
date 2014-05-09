@@ -6,6 +6,7 @@ import boto.ec2.autoscale
 import logging
 import os
 import random
+import sys
 
 def _get_all_groups(conn):
     groups = []
@@ -23,6 +24,9 @@ def public_hostname_from_id(instance_id, conn):
 def instance_id_from_asgname(asgname, conn):
     group = conn.get_all_groups([asgname], 1)[0]
     healthy_instances = filter(lambda i: i.health_status == 'Healthy', group.instances)
+    if len(healthy_instances) == 0:
+        logging.error("There were no healthy instances in ASG %s" % asgname)
+        sys.exit()
     random_instance = random.choice(healthy_instances)
     logging.info('Picked random instance: ' + str(random_instance))
     return random_instance.instance_id
