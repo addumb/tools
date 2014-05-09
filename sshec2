@@ -7,6 +7,14 @@ import logging
 import os
 import random
 
+def _get_all_groups(conn):
+    groups = []
+    chunk = conn.get_all_groups()
+    while chunk.next_token != None:
+        groups.extend(chunk)
+        chunk = conn.get_all_groups(next_token = chunk.next_token)
+    return groups
+
 def public_hostname_from_id(instance_id, conn):
     hostname = conn.get_all_instances([instance_id])[0].instances[0].public_dns_name
     logging.info('Resolved Instance ID %s to %s' % (instance_id, hostname))
@@ -19,25 +27,59 @@ def instance_id_from_asgname(asgname, conn):
     logging.info('Picked random instance: ' + str(random_instance))
     return random_instance.instance_id
 
+def latest_asg_prefixed(prefix, conn):
+    groups = _get_all_groups(conn)
+    logging.info("Candidate groups before filtering: %s" % len(groups))
+    prefixed = filter(lambda g: g.name.startswith(prefix), groups)
+    logging.info("Candidate groups after prefix filtering: %s" % len(prefixed))
+    notempty = filter(lambda g: len(g.instances) > 0, prefixed)
+    logging.info("Candidate groups after notempty filtering: %s" % len(notempty))
+    if len(notempty) == 0:
+        logging.error("There were no groups with that prefix which contain instances.")
+        sys.exit()
+    latest = sorted(notempty, key=lambda g: g.created_time, reverse=True)[0]
+    return latest.name
+
 def main():
     ap = argparse.ArgumentParser(description='Wrap SSH in some EC2 info.')
-    ap.add_argument('-i', '--instance-id', help='Instance ID to get to.')
+    ap.add_argument('-a', '--asg', help='AutoScaling Group to pick an instnace out of. Conflicts with -i and -p')
+    ap.add_argument('-i', '--instance-id', help='Instance ID to get to. Conflicts with -a and -p.')
+    ap.add_argument('-l', '--log-level', help='Logging level.', default='warning')
     ap.add_argument('-o', '--ssh-args', help='Arguments to pass to SSH.', default='')
+    ap.add_argument('-p', '--group-prefix', help='AutoScaling Group prefix to get the latest group and a random instance from. Conflicts with -a and -i.')
     ap.add_argument('-r', '--region', help='EC2 region.', default='us-west-1')
-    ap.add_argument('--log-level', help='Logging level.', default='warning')
-    ap.add_argument('-a', '--asg', help='AutoScaling Group to pick an instnace out of.')
     
     args = ap.parse_args()
     logging.basicConfig(level=getattr(logging, args.log_level.upper()))
 
     ec2conn = boto.ec2.connect_to_region(args.region)
 
-    if args.asg != None:
-        asgconn = boto.ec2.autoscale.connect_to_region(args.region)
-        args.instance_id = instance_id_from_asgname(args.asg, asgconn)
+    if args.asg != None and args.group_prefix != None:
+        logging.error("You cannot combine --asg and --group-prefix.")
+        ap.format_help()
 
+    if args.instance_id != None and args.asg != None:
+        logging.error("You cannot combine --instance-id and --asg.")
+        ap.format_help()
+
+    if args.instance_id != None and args.group_prefix!= None:
+        logging.error("You cannot combine --instance-id and --group-prefix.")
+        ap.format_help()
+
+    asgconn = boto.ec2.autoscale.connect_to_region(args.region)
+    if args.group_prefix != None:
+        logging.info("Getting the latest ASG with prefix %s" % args.group_prefix)
+        args.asg = latest_asg_prefixed(args.group_prefix, asgconn)
+        logging.info("Found it: %s" % args.asg)
+
+    if args.asg != None:
+        logging.info("Getting an instance id from ASG named %s" % args.asg)
+        args.instance_id = instance_id_from_asgname(args.asg, asgconn)
+        logging.info("Found it: %s" % args.instance_id)
+
+    logging.info("Getting a hostname from instance id %s" % args.instance_id)
     hostname = public_hostname_from_id(args.instance_id, ec2conn)
-    logging.debug('Found hostname: ' + hostname)
+    logging.info("Found it: %s" % hostname)
 
     os.system("ssh %s %s" % (args.ssh_args, hostname))
 
