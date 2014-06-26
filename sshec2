@@ -11,9 +11,11 @@ import sys
 def _get_all_groups(conn):
     groups = []
     chunk = conn.get_all_groups()
-    while chunk.next_token != None:
-        groups.extend(chunk)
+    groups.extend(chunk)
+    while chunk.next_token:
+        logging.info("Got %s groups..." % len(chunk))
         chunk = conn.get_all_groups(next_token = chunk.next_token)
+        groups.extend(chunk)
     return groups
 
 def public_hostname_from_id(instance_id, conn):
